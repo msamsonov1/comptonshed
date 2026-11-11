@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ComptonShed - Active EM Shield Gamma-Flash Auditor</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            space: {
+              950: '#03050a',
+              900: '#060a12',
+              850: '#0a101d',
+              800: '#0f172a'
+            },
+            cyan: { 400: '#22d3ee', 500: '#06b6d4' },
+            violet: { 400: '#a78bfa', 500: '#8b5cf6' },
+            rose: { 400: '#fb7185', 500: '#f43f5e' }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- MathJax v3 Configuration & Loader -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    body {
+      background-color: #03050a;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .formula-box {
+      background-color: #060a12;
+      border: 1px solid #1e293b;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #060a12;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    .glass-card {
+      background: rgba(10, 16, 29, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(30, 41, 59, 0.8);
+    }
+    .hud-glow {
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.2);
+    }
+    .hud-glow-red {
+      box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-300">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-gray-800/80 bg-space-900/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="relative p-2 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-400">
+          <i data-lucide="shield-alert" class="w-6 h-6"></i>
+          <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+          </span>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+              ComptonShed <span class="text-xs px-2 py-0.5 rounded font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">TRL-4 / STTR Phase I</span>
+            </h1>
+          </div>
+          <p class="text-xs text-gray-400 font-mono">Active EM Shield Secondary Gamma-Flash Auditor & Beam-Dump Director</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center space-x-1.5 bg-space-950/80 p-1 rounded-xl border border-gray-800 text-xs font-medium">
+        <button id="tabBtnSim" onclick="switchTab('sim')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 text-black font-semibold transition-all">
+          <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+          <span>Live Auditor HUD</span>
+        </button>
+        <button id="tabBtnPhysics" onclick="switchTab('physics')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all">
+          <i data-lucide="atom" class="w-3.5 h-3.5"></i>
+          <span>Physics & Maxwell Model</span>
+        </button>
+        <button id="tabBtnProposal" onclick="switchTab('proposal')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all">
+          <i data-lucide="file-check-2" class="w-3.5 h-3.5"></i>
+          <span>NASA Proposal ($225k)</span>
+        </button>
+        <button id="tabBtnARR" onclick="switchTab('arr')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all">
+          <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+          <span>Civil ARR ($214M)</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Viewport -->
+  <main class="max-w-7xl mx-auto w-full p-4 lg:p-6 flex-grow">
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: LIVE SIMULATION & TELEMETRY HUD (#viewSim)                         -->
+    <!-- ========================================================================= -->
+    <div id="viewSim" class="space-y-6">
+      
+      <!-- Top Alert Ribbon & Summary Bar -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+        <div class="glass-card p-3 rounded-xl border-l-4 border-l-cyan-500 flex flex-col justify-between">
+          <span class="text-gray-400 uppercase tracking-wider text-[10px]">Primary Field ($B_{\text{coil}}$)</span>
+          <div class="text-lg font-bold text-cyan-400 mt-1" id="statBField">4.85 T</div>
+          <span class="text-[10px] text-gray-500">Deflection Threshold: 3.2 T</span>
+        </div>
+        <div class="glass-card p-3 rounded-xl border-l-4 border-l-rose-500 flex flex-col justify-between">
+          <span class="text-gray-400 uppercase tracking-wider text-[10px]">Secondary Gamma Flux ($E_\gamma$)</span>
+          <div class="text-lg font-bold text-rose-400 mt-1" id="statGammaFlux">42.4 mSv/h</div>
+          <span class="text-[10px] text-gray-500">ALARA Critical: &gt; 50.0 mSv/h</span>
+        </div>
+        <div class="glass-card p-3 rounded-xl border-l-4 border-l-violet-500 flex flex-col justify-between">
+          <span class="text-gray-400 uppercase tracking-wider text-[10px]">Trim Coil Steering ($\theta_{\text{trim}}$)</span>
+          <div class="text-lg font-bold text-violet-400 mt-1" id="statTrimAngle">+14.2°</div>
+          <span class="text-[10px] text-gray-500">Dual Halbach Vectoring</span>
+        </div>
+        <div class="glass-card p-3 rounded-xl border-l-4 border-l-emerald-500 flex flex-col justify-between">
+          <span class="text-gray-400 uppercase tracking-wider text-[10px]">Hab Safe Margin ($\eta_{\text{atten}}$)</span>
+          <div class="text-lg font-bold text-emerald-400 mt-1" id="statHabSafe">98.4%</div>
+          <span class="text-[10px] text-emerald-500/80 flex items-center gap-1">
+            <i data-lucide="check-circle" class="w-3 h-3"></i> Dump Aligned
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Interactive Row: Kinetic Canvas & Phase Space Plot -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left 7 Cols: Interactive Habitat EM Canvas -->
+        <div class="lg:col-span-7 glass-card p-4 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between pb-3 border-b border-gray-800 mb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              <h2 class="text-sm font-semibold text-white tracking-wide uppercase font-mono">Cross-Sectional Beam-Dump Intercept Simulator</h2>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span id="systemStatusBadge" class="px-2.5 py-0.5 rounded-full font-mono text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                CLOSED-LOOP ACTIVE
+              </span>
+            </div>
+          </div>
+
+          <!-- The Physics Canvas -->
+          <div class="relative w-full aspect-[16/10] bg-space-950 rounded-xl overflow-hidden border border-gray-900 flex items-center justify-center">
+            <canvas id="shieldCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            
+            <!-- Floating Overlay Legend -->
+            <div class="absolute bottom-2 left-2 bg-space-900/90 border border-gray-800 p-2 rounded-lg text-[10px] font-mono space-y-1 backdrop-blur pointer-events-none">
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span> GCR Ions ($Z \ge 1$, Relativistic)</div>
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span> Secondary $\gamma$ Flash (Prompt Bremsstrahlung)</div>
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Tungsten/HDPE Beam Stops (Target)</div>
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Pressurized Crew Module (Protected)</div>
+            </div>
+
+            <!-- Warning Watermark if Secondary Spike Detected -->
+            <div id="flashWarningOverlay" class="absolute inset-0 bg-rose-950/20 border-2 border-rose-500/60 rounded-xl flex items-center justify-center pointer-events-none hidden transition-all duration-300">
+              <div class="bg-rose-900/90 border border-rose-500 px-4 py-2 rounded-lg text-rose-200 font-mono text-xs flex items-center gap-2 shadow-2xl animate-pulse">
+                <i data-lucide="radiation" class="w-4 h-4 text-rose-300"></i>
+                <span>SECONDARY GAMMA FLASH DETECTED: AUTO-DEFLECTION CORRECTION</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas Subtext Controls -->
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-gray-400 pt-2 border-t border-gray-800/80">
+            <span class="flex items-center gap-1.5"><i data-lucide="mouse-pointer" class="w-3.5 h-3.5 text-cyan-400"></i> Click/Drag on canvas to skew cosmic ion angle</span>
+            <div class="flex items-center space-x-2">
+              <button onclick="toggleLoopMode()" id="loopModeBtn" class="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 rounded border border-cyan-500/40 text-[11px] transition">
+                Mode: Auto Trim Active
+              </button>
+              <button onclick="injectStrutCollision()" class="px-2.5 py-1 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 rounded border border-rose-500/40 text-[11px] transition">
+                Inject Strut Collision
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Primary Phase-Space Diagnostic Plot (Chart.js) -->
+        <div class="lg:col-span-5 glass-card p-4 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between pb-3 border-b border-gray-800 mb-2">
+            <div>
+              <h2 class="text-sm font-semibold text-white tracking-wide uppercase font-mono">Real-Time $(E, B)$ Diagnostic Space</h2>
+              <p class="text-[11px] text-gray-400">Y: Mag Flux $B$ (T) vs X: Secondary Gamma Energy $E$ (MeV)</p>
+            </div>
+            <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800">
+              100 Hz Spectrometer Track
+            </span>
+          </div>
+
+          <!-- Scatter Plot Container -->
+          <div class="relative w-full h-[310px]">
+            <canvas id="phaseSpaceChart"></canvas>
+          </div>
+
+          <div class="p-2.5 bg-space-950 rounded-xl border border-gray-800 text-[11px] font-mono space-y-1 text-gray-300 mt-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-gray-400">Auditor Decoupling Metric ($\kappa$):</span>
+              <span id="kappaMetric" class="font-bold text-cyan-400">0.021 (Optimal Safe)</span>
+            </div>
+            <p class="text-[10px] text-gray-400 leading-relaxed">
+              When $B$ rises without trim steering, secondary Bremsstrahlung energy $E_\gamma$ shifts into the <span class="text-rose-400 font-semibold">Prompt Flash Danger Zone</span> due to ions hitting aluminum trunnions.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Telemetry Plots & Dynamic Closed-Loop Tuning -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Live Time Series 1: Internal Gamma Dose Rate -->
+        <div class="glass-card p-4 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-semibold uppercase font-mono text-gray-300">Internal Gamma Spectrometer ($E_\gamma$)</h3>
+            <span class="text-[10px] font-mono text-rose-400">CdZnTe Array</span>
+          </div>
+          <div class="h-36 w-full">
+            <canvas id="gammaTimeSeriesChart"></canvas>
+          </div>
+          <div class="flex justify-between items-center text-[10px] font-mono text-gray-400 mt-2">
+            <span>Dose Margin: 0.15 cGy/day</span>
+            <span class="text-emerald-400">Status: Nominal Shield</span>
+          </div>
+        </div>
+
+        <!-- Live Time Series 2: Aux Trim Coil Drive Current -->
+        <div class="glass-card p-4 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-semibold uppercase font-mono text-gray-300">Aux Trim Coil Drive ($I_{\text{trim}}$)</h3>
+            <span class="text-[10px] font-mono text-violet-400">YBCO Superconducting</span>
+          </div>
+          <div class="h-36 w-full">
+            <canvas id="trimTimeSeriesChart"></canvas>
+          </div>
+          <div class="flex justify-between items-center text-[10px] font-mono text-gray-400 mt-2">
+            <span>PID Output: $\Delta \theta = \pm 22.5^\circ$</span>
+            <span class="text-violet-400">Slew: 120 ms</span>
+          </div>
+        </div>
+
+        <!-- Hardware Sliders & Environmental Fault Injection -->
+        <div class="glass-card p-4 rounded-2xl flex flex-col justify-between space-y-3">
+          <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+            <h3 class="text-xs font-semibold uppercase font-mono text-gray-300">Closed-Loop Trim Parameters</h3>
+            <span class="text-[10px] font-mono text-amber-400">Interactive Control</span>
+          </div>
+
+          <!-- Slider 1: Main Magnetic Coil Current (B-Field) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <label for="bFieldSlider" class="text-gray-400">Primary Field ($B_0$)</label>
+              <span id="bFieldVal" class="text-cyan-400 font-bold">4.8 T</span>
+            </div>
+            <input type="range" id="bFieldSlider" min="1.0" max="8.0" step="0.1" value="4.8"
+                   class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+          </div>
+
+          <!-- Slider 2: Incoming Cosmic Ray Rigidity (GeV/c) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <label for="rigiditySlider" class="text-gray-400">GCR Rigidity ($R$)</label>
+              <span id="rigidityVal" class="text-cyan-400 font-bold">12.5 GV</span>
+            </div>
+            <input type="range" id="rigiditySlider" min="2.0" max="30.0" step="0.5" value="12.5"
+                   class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+          </div>
+
+          <!-- Slider 3: Strut Intercept Offset (Geometric Misalignment) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <label for="strutOffsetSlider" class="text-gray-400">Trunnion Scatter Offset</label>
+              <span id="strutOffsetVal" class="text-rose-400 font-bold">0.0 mm</span>
+            </div>
+            <input type="range" id="strutOffsetSlider" min="-50" max="50" step="1" value="0"
+                   class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-rose-400">
+          </div>
+
+          <!-- Observer Reset Button -->
+          <div class="pt-1">
+            <button onclick="resetTelemetryData()" class="w-full py-2 bg-space-950 border border-gray-700 hover:border-gray-500 text-xs font-mono rounded-lg transition text-gray-300 hover:text-white flex items-center justify-center gap-1.5">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              Reset Auditor Trajectory Buffer
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: CORE PHYSICS & MATHEMATICAL MODEL (#viewPhysics)                   -->
+    <!-- ========================================================================= -->
+    <div id="viewPhysics" class="hidden space-y-6">
+      <div class="glass-card p-6 rounded-2xl">
+        <div class="flex items-center space-x-3 pb-4 border-b border-gray-800">
+          <div class="p-2 rounded-lg bg-violet-500/20 text-violet-400">
+            <i data-lucide="book-open" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white font-mono">ComptonShed Multi-Physics & Radiation Transport Framework</h2>
+            <p class="text-xs text-gray-400">Mathematical Formulation of Relativistic Lorentzians Coupled to Thin-Target Bremsstrahlung & Compton Scattering</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          
+          <!-- Card 1: Relativistic Particle Lorentz Steering -->
+          <div class="bg-space-950 p-5 rounded-xl border border-gray-800 space-y-3">
+            <div class="flex items-center gap-2 text-cyan-400 text-sm font-semibold font-mono">
+              <i data-lucide="compass" class="w-4 h-4"></i>
+              <span>1. Relativistic Deflection Field & Rigidity</span>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed">
+              Galactic Cosmic Ray (GCR) ions (protons to iron nuclei, $^{56}\text{Fe}^{26+}$) penetrate interplanetary active shields. The trajectory curvature is dictated by their magnetic rigidity $R$:
+            </p>
+            <div class="formula-box text-center">
+              $$R = \frac{p c}{Z e} = \rho \cdot B, \quad \frac{d\mathbf{p}}{dt} = q \left[ \mathbf{v} \times \left( \mathbf{B}_0(\mathbf{r}) + \mathbf{B}_{\text{trim}}(\mathbf{r}, t) \right) \right]$$
+            </div>
+            <p class="text-xs text-gray-400">
+              Where $p = \gamma m v$ is relativistic momentum, $Z e$ is nuclear charge, and $\mathbf{B}_{\text{trim}}$ is the dynamic auxiliary steering field produced by localized superconducting trim loops.
+            </p>
+          </div>
+
+          <!-- Card 2: Secondary Bremsstrahlung & Inward Flash -->
+          <div class="bg-space-950 p-5 rounded-xl border border-gray-800 space-y-3">
+            <div class="flex items-center gap-2 text-rose-400 text-sm font-semibold font-mono">
+              <i data-lucide="zap" class="w-4 h-4"></i>
+              <span>2. Thin-Target Bremsstrahlung & Compton Flash</span>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed">
+              When high-energy ions strike structural aluminum/titanium struts rather than engineered beam dumps, high-energy Bremsstrahlung photons and pair-production cascades are generated:
+            </p>
+            <div class="formula-box text-center">
+              $$\frac{d\sigma_{\text{rad}}}{d k} \approx \frac{16}{3} \alpha r_0^2 Z_{\text{target}}^2 \left(\frac{m_e c^2}{E}\right)^2 \frac{1}{k} \ln \left( \frac{2 E E'}{k m_e c^2} \right)$$
+            </div>
+            <p class="text-xs text-gray-400">
+              Internal gamma photon energy flux $E_\gamma$ escalates inside the crew habitat as $Z_{\text{target}}^2$. Structural collisions generate an inward, prompt radiative hazard far exceeding pristine cosmic background.
+            </p>
+          </div>
+
+          <!-- Card 3: The (B, E) Decoupling State Observer -->
+          <div class="bg-space-950 p-5 rounded-xl border border-gray-800 space-y-3">
+            <div class="flex items-center gap-2 text-emerald-400 text-sm font-semibold font-mono">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+              <span>3. Dynamic State Observer & Inversion Estimator</span>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed">
+              ComptonShed continuously tracks the cross-correlation gradient between applied primary magnetic field $B(t)$ and internalized spectrometer photon flux $E_\gamma(t)$:
+            </p>
+            <div class="formula-box text-center">
+              $$\Gamma_{\text{audit}}(t) = \frac{\partial E_\gamma}{\partial B} - \mathcal{J}_{\text{model}}(B, \Phi_{\text{GCR}}), \quad \Delta \mathbf{I}_{\text{trim}} = -\mathbf{K}_p \Gamma_{\text{audit}} - \mathbf{K}_d \frac{d\Gamma_{\text{audit}}}{dt}$$
+            </div>
+            <p class="text-xs text-gray-400">
+              When $\partial E_\gamma / \partial B > 0$, increased deflection is inadvertently driving particle trajectories into structural struts. The software applies a negative feedback current $\Delta \mathbf{I}_{\text{trim}}$ to steer the focal waist to the peripheral tungsten stops.
+            </p>
+          </div>
+
+          <!-- Card 4: Tungsten-Polyethylene Dump Architecture -->
+          <div class="bg-space-950 p-5 rounded-xl border border-gray-800 space-y-3">
+            <div class="flex items-center gap-2 text-violet-400 text-sm font-semibold font-mono">
+              <i data-lucide="layers" class="w-4 h-4"></i>
+              <span>4. High-Z / Low-Z Graded Beam Dump Attenuation</span>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed">
+              External beam dumps utilize high-density tungsten ($W$, $Z=74$) to degrade primary kinetic energy, followed by borated ultra-high molecular weight polyethylene (UHMW-PE) to thermalize secondary spallation neutrons:
+            </p>
+            <div class="formula-box text-center">
+              $$I_\gamma(x) = I_0 \exp\left( - \mu_{\text{pe}} x_1 \right) \cdot \exp\left( - \left[\frac{\mu}{\rho}\right]_W \rho_W x_2 \right) + S_{\text{spallation}}$$
+            </div>
+            <p class="text-xs text-gray-400">
+              Directing cosmic ray focal lines strictly into peripheral dumps ensures $99.2\%$ of Bremsstrahlung photons propagate into outer space, preserving crew habitat limits below $150\,\text{mSv/year}$.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: NASA SBIR/STTR PROPOSAL & HARDWARE TRANSITION (#viewProposal)      -->
+    <!-- ========================================================================= -->
+    <div id="viewProposal" class="hidden space-y-6">
+      
+      <!-- Solicitation Banner -->
+      <div class="glass-card p-6 rounded-2xl border-l-4 border-l-cyan-500">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[11px] font-mono bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">NASA STTR 2026-I Solicitation</span>
+              <span class="text-xs text-gray-400 font-mono">Topic: T11.02 Space Radiation Protection Systems</span>
+            </div>
+            <h2 class="text-xl font-bold text-white mt-1">ComptonShed: Active Electromagnetic Shield Secondary Gamma-Flash Auditor</h2>
+            <p class="text-xs text-gray-300 mt-1 max-w-3xl">
+              An autonomous closed-loop state-observer software suite preventing structural secondary Bremsstrahlung radiation during active superconducting deep-space deflection.
+            </p>
+          </div>
+          <div class="bg-space-950 p-4 rounded-xl border border-gray-800 text-right min-w-[220px]">
+            <div class="text-[11px] text-gray-400 uppercase font-mono">Total Phase I Budget</div>
+            <div class="text-2xl font-bold text-cyan-400 font-mono">$225,000</div>
+            <div class="text-[11px] text-gray-400 font-mono mt-1">Period of Performance: <span class="text-white">6 Months</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- University Partner & Allocation Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- RI Partner Card -->
+        <div class="glass-card p-5 rounded-xl border border-gray-800">
+          <div class="flex items-center gap-2 text-violet-400 text-xs font-mono uppercase font-bold mb-3">
+            <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+            <span>Research Institution Partner</span>
+          </div>
+          <h3 class="text-sm font-bold text-white">University of Central Florida (UCF)</h3>
+          <p class="text-xs text-gray-400 mt-1">Center for Advanced Turbomachinery and Energy Research (CATER) & Radiation Transport Laboratory</p>
+          <div class="mt-4 pt-3 border-t border-gray-800/80 space-y-1 text-xs font-mono">
+            <div class="flex justify-between">
+              <span class="text-gray-400">STTR Statutory Share:</span>
+              <span class="text-cyan-400 font-bold">30.0% Exact</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Subcontract Total:</span>
+              <span class="text-white font-bold">$67,500</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Lab Lead:</span>
+              <span class="text-gray-300">Radiation Physics Dept</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Technical Lead -->
+        <div class="glass-card p-5 rounded-xl border border-gray-800">
+          <div class="flex items-center gap-2 text-cyan-400 text-xs font-mono uppercase font-bold mb-3">
+            <i data-lucide="building-2" class="w-4 h-4"></i>
+            <span>Small Business Lead (70%)</span>
+          </div>
+          <h3 class="text-sm font-bold text-white">RFWaveCode Innovations LLC</h3>
+          <p class="text-xs text-gray-400 mt-1">Deep-Tech Computational Electromagnetics & Flight Control Software</p>
+          <div class="mt-4 pt-3 border-t border-gray-800/80 space-y-1 text-xs font-mono">
+            <div class="flex justify-between">
+              <span class="text-gray-400">Prime Allocation:</span>
+              <span class="text-cyan-400 font-bold">70.0% ($157,500)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Deliverable:</span>
+              <span class="text-white font-bold">Real-Time Core Engine</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Target TRL:</span>
+              <span class="text-gray-300">TRL 3 $\to$ TRL 5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Facilities & Validation -->
+        <div class="glass-card p-5 rounded-xl border border-gray-800">
+          <div class="flex items-center gap-2 text-emerald-400 text-xs font-mono uppercase font-bold mb-3">
+            <i data-lucide="test-tube" class="w-4 h-4"></i>
+            <span>Experimental Facilities</span>
+          </div>
+          <h3 class="text-sm font-bold text-white">UCF High-Vacuum Gamma Testing</h3>
+          <p class="text-xs text-gray-400 mt-1">Cryogenic High-Field Test Cell coupled to Cs-137 / Co-60 Compton scatter spectrometers and Geant4 simulation harness.</p>
+          <div class="mt-4 pt-3 border-t border-gray-800/80 text-xs font-mono text-gray-300">
+            <span class="text-emerald-400 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> Complete test fixture validated
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 6-Month Work Breakdown Schedule -->
+      <div class="glass-card p-6 rounded-2xl border border-gray-800">
+        <h3 class="text-sm font-bold text-white font-mono uppercase tracking-wider mb-4 flex items-center gap-2">
+          <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+          Phase I Work Plan: 6-Month Milestone Roadmap ($225,000)
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          
+          <div class="bg-space-950 p-4 rounded-xl border border-gray-800 space-y-2">
+            <div class="text-[10px] font-mono text-cyan-400 uppercase font-semibold">Month 1 - 2: Milestone 1</div>
+            <h4 class="text-xs font-bold text-white">Coupled Geant4 & Biot-Savart Sim Engine</h4>
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              Construct high-fidelity 3D Monte Carlo ray tracing mapping GCR deflection past spaceframe structural nodes into secondary photon spectra.
+            </p>
+            <div class="text-[10px] font-mono text-gray-500">Milestone Lead: UCF CATER ($25k)</div>
+          </div>
+
+          <div class="bg-space-950 p-4 rounded-xl border border-gray-800 space-y-2">
+            <div class="text-[10px] font-mono text-cyan-400 uppercase font-semibold">Month 3: Milestone 2</div>
+            <h4 class="text-xs font-bold text-white">Real-Time $(E, B)$ Inversion State Observer</h4>
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              Formulate Kalman-filtered inversion algorithm that isolates prompt strut-collision gamma signatures from diffuse galactic background radiation.
+            </p>
+            <div class="text-[10px] font-mono text-gray-500">Milestone Lead: RFWaveCode ($45k)</div>
+          </div>
+
+          <div class="bg-space-950 p-4 rounded-xl border border-gray-800 space-y-2">
+            <div class="text-[10px] font-mono text-cyan-400 uppercase font-semibold">Month 4 - 5: Milestone 3</div>
+            <h4 class="text-xs font-bold text-white">Aux Trim Coil Modulator & Hardware-in-the-Loop</h4>
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              Implement closed-loop PID/LQR controller executing real-time field vector trim adjustments with &lt; 200 ms slew rate on scale bench coils.
+            </p>
+            <div class="text-[10px] font-mono text-gray-500">Joint RFWaveCode / UCF ($75k)</div>
+          </div>
+
+          <div class="bg-space-950 p-4 rounded-xl border border-gray-800 space-y-2">
+            <div class="text-[10px] font-mono text-cyan-400 uppercase font-semibold">Month 6: Milestone 4</div>
+            <h4 class="text-xs font-bold text-white">Phase II Demonstration & Transition Specification</h4>
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              Final demonstration in UCF vacuum cryogenic chamber. Delivery of full hardware flight-controller specs for $1.15M Phase II prototype.
+            </p>
+            <div class="text-[10px] font-mono text-gray-500">Joint Deliverable ($80k)</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase II Transition Strategy -->
+      <div class="glass-card p-6 rounded-2xl border border-gray-800 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h4 class="text-sm font-bold text-white font-mono uppercase">Phase II Fast-Track Commercialization ($1,150,000)</h4>
+          <p class="text-xs text-gray-300 mt-1 max-w-2xl leading-relaxed">
+            Transition directly to radiation-hardened FPGA flight software for Gateway Deep Space Habitat (DSH) and crewed Mars transit vehicles, testing on the 10-Tesla superconducting magnet rig at NASA Marshall and UCF cryogenic facilities.
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="mailto:support@rfwavecode.com?subject=ComptonShed%20NASA%20Phase%20I%20Proposal%20Inquiry" class="px-4 py-2.5 rounded-xl bg-cyan-500 text-black font-semibold text-xs hover:bg-cyan-400 transition flex items-center gap-1.5 whitespace-nowrap">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            Request Full STTR Proposal PDF
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: COMMERCIAL & NATIONWIDE ARR BREAKDOWN (#viewARR)                   -->
+    <!-- ========================================================================= -->
+    <div id="viewARR" class="hidden space-y-6">
+      
+      <!-- Executive Summary Card -->
+      <div class="glass-card p-6 rounded-2xl border-l-4 border-l-violet-500">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <span class="px-2 py-0.5 rounded text-[11px] font-mono bg-violet-500/20 text-violet-400 border border-violet-500/30">Commercial Market Strategy</span>
+            <h2 class="text-xl font-bold text-white mt-1">Dual-Use Civil Radiation Mitigation & Particle Beam Management</h2>
+            <p class="text-xs text-gray-300 mt-1 max-w-3xl">
+              While engineered for NASA deep space crew modules, the underlying $(E, B)$ electromagnetic halo-auditing kernel solves secondary scatter losses across $6$ major civil sectors with zero classified or defense encumbrances.
+            </p>
+          </div>
+          <div class="bg-space-950 p-4 rounded-xl border border-gray-800 text-right min-w-[240px]">
+            <div class="text-[11px] text-gray-400 uppercase font-mono">Mature Nationwide ARR Target</div>
+            <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 font-mono">$214.2M</div>
+            <div class="text-[10px] text-emerald-400 font-mono mt-1">Enterprise Valuation (10x SaaS): <span class="font-bold">$2.14 Billion</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARR Distribution Table -->
+      <div class="glass-card rounded-2xl overflow-hidden border border-gray-800">
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white font-mono uppercase tracking-wide">Nationwide Addressable Civil Market Breakdown</h3>
+          <span class="text-xs text-cyan-400 font-mono">Real-Time Core Software Licensing Model</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-space-950 text-gray-400 uppercase text-[10px] border-b border-gray-800">
+              <tr>
+                <th class="p-3">Commercial Vertical</th>
+                <th class="p-3">Specific System Target</th>
+                <th class="p-3">Annual Software SaaS / Unit</th>
+                <th class="p-3">Nationwide Fleet Base</th>
+                <th class="p-3 text-right">Projected ARR</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800/60 text-gray-300">
+              <tr class="hover:bg-space-900/60 transition">
+                <td class="p-3 font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="microchip" class="w-4 h-4 text-cyan-400"></i> Semiconductor EUV Lithography
+                </td>
+                <td class="p-3">Tin Plasma Debris Ion Guides & Beam Baffles</td>
+                <td class="p-3 text-cyan-400">$240,000 / tool / yr</td>
+                <td class="p-3">220 Systems</td>
+                <td class="p-3 text-right font-bold text-white">$52.8M</td>
+              </tr>
+              <tr class="hover:bg-space-900/60 transition">
+                <td class="p-3 font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="activity-square" class="w-4 h-4 text-rose-400"></i> Proton & Carbon Flash Therapy
+                </td>
+                <td class="p-3">Clinical Gantry Beam Halo & Inward Secondary Bremsstrahlung</td>
+                <td class="p-3 text-cyan-400">$180,000 / clinical center</td>
+                <td class="p-3">185 Centers</td>
+                <td class="p-3 text-right font-bold text-white">$33.3M</td>
+              </tr>
+              <tr class="hover:bg-space-900/60 transition">
+                <td class="p-3 font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="orbit" class="w-4 h-4 text-violet-400"></i> Commercial Artemis & LEO Stations
+                </td>
+                <td class="p-3">Private Habitats (Axiom, Starlab, Orbital Reef)</td>
+                <td class="p-3 text-cyan-400">$650,000 / module cluster</td>
+                <td class="p-3">64 Hab Units</td>
+                <td class="p-3 text-right font-bold text-white">$41.6M</td>
+              </tr>
+              <tr class="hover:bg-space-900/60 transition">
+                <td class="p-3 font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="plane" class="w-4 h-4 text-amber-400"></i> Suborbital Commercial Spaceflight
+                </td>
+                <td class="p-3">Upper Atmosphere Tourism Radiation Shielding</td>
+                <td class="p-3 text-cyan-400">$95,000 / spacecraft</td>
+                <td class="p-3">210 Craft</td>
+                <td class="p-3 text-right font-bold text-white">$19.9M</td>
+              </tr>
+              <tr class="hover:bg-space-900/60 transition">
+                <td class="p-3 font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="flame" class="w-4 h-4 text-emerald-400"></i> Fusion Energy Pilot Plants
+                </td>
+                <td class="p-3">Tokamak Divertor Runaway Electron Secondary Scatter</td>
+                <td class="p-3 text-cyan-400">$350,000 / reactor / yr</td>
+                <td class="p-3">92 Private Fusion Projects</td>
+                <td class="p-3 text-right font-bold text-white">$32.2M</td>
+              </tr>
+              <tr class="hover:bg-space-900/60 transition">
+                <td class="p-3 font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i> Terrestrial Quantum Cloud Hubs
+                </td>
+                <td class="p-3">Cosmic Ray Quabit Dephasing Suppression Shielding</td>
+                <td class="p-3 text-cyan-400">$120,000 / cryostat cluster</td>
+                <td class="p-3">286 Quantum Centers</td>
+                <td class="p-3 text-right font-bold text-white">$34.4M</td>
+              </tr>
+            </tbody>
+            <tfoot class="bg-space-950 font-bold border-t-2 border-gray-700">
+              <tr>
+                <td colspan="4" class="p-3 text-right text-gray-300">TOTAL ADDRESSABLE ANNUAL RECURRING REVENUE:</td>
+                <td class="p-3 text-right text-cyan-400 text-sm">$214.2M / yr</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Industry Deep-Dive Cards (Physics & Plain English Comparison) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Deep Dive 1: EUV Lithography -->
+        <div class="glass-card p-5 rounded-xl border border-gray-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-cyan-400 uppercase">1. Semiconductor EUV Lithography</span>
+            <span class="text-xs font-mono text-gray-400">$52.8M ARR</span>
+          </div>
+          <div class="p-2.5 rounded bg-space-950 border border-gray-800 text-xs">
+            <span class="text-cyan-400 font-semibold font-mono">Physics in 1 Sentence:</span>
+            <span class="text-gray-300"> High-energy tin ions redirected by magnetic debris collectors impact chamber collimators, causing catastrophic soft X-ray optical mirror coating degradation.</span>
+          </div>
+          <div>
+            <span class="text-[11px] font-mono font-semibold text-rose-400">Why Others Missed This (Plain English):</span>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Incumbents simply crank magnetic fields higher or employ sacrificial hydrogen buffer gas flushed at extreme flow rates. ComptonShed audits the $(E, B)$ secondary ionization flash and dynamically trims the field line focus into replaceable debris dump labyrinths, quadrupling mirror lifetimes.
+            </p>
+          </div>
+        </div>
+
+        <!-- Deep Dive 2: Proton Cancer Therapy -->
+        <div class="glass-card p-5 rounded-xl border border-gray-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-rose-400 uppercase">2. Proton & Heavy-Ion Cancer Radiotherapy</span>
+            <span class="text-xs font-mono text-gray-400">$33.3M ARR</span>
+          </div>
+          <div class="p-2.5 rounded bg-space-950 border border-gray-800 text-xs">
+            <span class="text-rose-400 font-semibold font-mono">Physics in 1 Sentence:</span>
+            <span class="text-gray-300"> Pencil beam magnetic scanning nozzles clip internal vacuum bellows and beamline flanges, delivering unwanted secondary prompt gamma scatter into healthy adjacent tissue.</span>
+          </div>
+          <div>
+            <span class="text-[11px] font-mono font-semibold text-cyan-400">Why Others Missed This (Plain English):</span>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Hospitals add tons of lead shielding to treatment rooms without altering magnetic beam steering. ComptonShed monitors CdZnTe prompt gamma halos in real time, automatically correcting magnetic trim coils to steer the halo into internal carbon dumps before it reaches the patient.
+            </p>
+          </div>
+        </div>
+
+        <!-- Deep Dive 3: Fusion Divertor Scatter -->
+        <div class="glass-card p-5 rounded-xl border border-gray-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-emerald-400 uppercase">3. Commercial Magnetic Fusion Pilot Plants</span>
+            <span class="text-xs font-mono text-gray-400">$32.2M ARR</span>
+          </div>
+          <div class="p-2.5 rounded bg-space-950 border border-gray-800 text-xs">
+            <span class="text-emerald-400 font-semibold font-mono">Physics in 1 Sentence:</span>
+            <span class="text-gray-300"> Relativistic runaway electrons generated during plasma disruptions scrape first-wall beryllium tiles, releasing giant secondary hard X-ray bursts that quench outer superconducting coils.</span>
+          </div>
+          <div>
+            <span class="text-[11px] font-mono font-semibold text-violet-400">Why Others Missed This (Plain English):</span>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Current tokamak controllers wait for the thermal thermal collapse before firing pellet injectors. ComptonShed detects the early $(E, B)$ phase-space drift in sub-millisecond real time and commands 3D saddle trim coils to harmlessly land runaway beams onto designated divertor targets.
+            </p>
+          </div>
+        </div>
+
+        <!-- Deep Dive 4: Quantum Computing Cloud Hubs -->
+        <div class="glass-card p-5 rounded-xl border border-gray-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-violet-400 uppercase">4. Quantum Cloud Data Centers</span>
+            <span class="text-xs font-mono text-gray-400">$34.4M ARR</span>
+          </div>
+          <div class="p-2.5 rounded bg-space-950 border border-gray-800 text-xs">
+            <span class="text-violet-400 font-semibold font-mono">Physics in 1 Sentence:</span>
+            <span class="text-gray-300"> Secondary gamma and neutron showers generated by cosmic muons colliding with dilution refrigerator structural copper destroy superconducting qubit quantum coherence across entire quantum chips simultaneously.</span>
+          </div>
+          <div>
+            <span class="text-[11px] font-mono font-semibold text-cyan-400">Why Others Missed This (Plain English):</span>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Standard data centers rely on passive lead bricks that themselves activate secondary Bremsstrahlung. ComptonShed operates an active electromagnetic deflection halo that redirects muon trajectories away from the millikelvin cryostat core.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Investor CTA Callout -->
+      <div class="glass-card p-6 rounded-2xl border border-gray-800 text-center space-y-3">
+        <h4 class="text-base font-bold text-white font-mono">Collaborate with the ComptonShed Engineering Team</h4>
+        <p class="text-xs text-gray-300 max-w-xl mx-auto">
+          Licensed flight libraries, Geant4 radiation benchmark suites, and STTR research consortium access are managed directly by RFWaveCode Innovations LLC.
+        </p>
+        <div class="pt-2">
+          <a href="mailto:support@rfwavecode.com" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 text-black font-semibold text-xs hover:bg-cyan-400 transition shadow-lg">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            Contact: support@rfwavecode.com
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Sticky Footer -->
+  <footer class="border-t border-gray-900 bg-space-950/80 px-4 py-3 text-xs font-mono text-gray-500 text-center">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>ComptonShed™ · NASA Topic T11.02 Active Radiation Shielding System</div>
+      <div class="flex items-center gap-4 text-[11px]">
+        <span class="text-gray-400">UCF CATER Partner (30% STTR)</span>
+        <a href="mailto:support@rfwavecode.com" class="text-cyan-400 hover:underline">support@rfwavecode.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT: Simulation Logic, Chart.js Telemetry, Closed-Loop Observer     -->
+  <!-- ========================================================================= -->
+  <script>
+    // Tab Switching Dictionary & Controller
+    const tabMapping = {
+      'sim': { viewId: 'viewSim', btnId: 'tabBtnSim' },
+      'physics': { viewId: 'viewPhysics', btnId: 'tabBtnPhysics' },
+      'proposal': { viewId: 'viewProposal', btnId: 'tabBtnProposal' },
+      'arr': { viewId: 'viewARR', btnId: 'tabBtnARR' }
+    };
+
+    function switchTab(tabKey) {
+      Object.keys(tabMapping).forEach(key => {
+        const item = tabMapping[key];
+        const viewEl = document.getElementById(item.viewId);
+        const btnEl = document.getElementById(item.btnId);
+
+        if (key === tabKey) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 text-black font-semibold transition-all";
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all";
+        }
+      });
+
+      // Typeset formulas in newly unhidden tabs
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise().catch(err => console.log('MathJax typeset error: ', err));
+      }
+
+      // Re-trigger layout sizing on canvas when returning to sim
+      if (tabKey === 'sim') {
+        resizeCanvas();
+      }
+
+      // Re-trigger Lucide icons
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // Simulation Physics Engine & State Observer
+    // =========================================================================
+    const simState = {
+      bField: 4.8,            // Tesla (Main coil)
+      rigidity: 12.5,         // GV (Cosmic ray momentum)
+      strutOffset: 0,         // Structural trunnion alignment error (-50 to 50)
+      autoTrimActive: true,   // Autonomous closed loop auditor
+      trimAngle: 14.2,        // Steerable trim coil deflection angle (degrees)
+      gammaFlux: 42.4,        // Measured internal gamma energy flux (mSv/h)
+      hazardState: false,     // True if secondary flash exceeds threshold
+      particles: [],          // Active cosmic ray particles
+      secondaryFlashes: [],   // Active secondary gamma rays
+      phaseHistory: [],       // (Energy, B-field) trajectory points for scatter chart
+      timeTick: 0
+    };
+
+    // Canvas Configuration
+    const canvas = document.getElementById('shieldCanvas');
+    const ctx = canvas.getContext('2d');
+    let animationFrameId = null;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = rect.width || 640;
+      const h = rect.height || 400;
+
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      if (phaseChart) phaseChart.resize();
+      if (gammaChart) gammaChart.resize();
+      if (trimChart) trimChart.resize();
+    });
+
+    // Particle Classes
+    class CosmicRay {
+      constructor(x, y, vx, vy, charge, zSymbol) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.charge = charge;
+        this.zSymbol = zSymbol;
+        this.trail = [];
+        this.alive = true;
+      }
+
+      update(width, height, bField, trimAngleDeg) {
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 14) this.trail.shift();
+
+        // Active EM Field Region Interaction (Center-left to center-right)
+        const cx = width * 0.5;
+        const cy = height * 0.5;
+        const distFromCenter = Math.hypot(this.x - cx, this.y - cy);
+
+        // Lorentz force approximation F = q (v x B)
+        if (distFromCenter < 190) {
+          const fieldStrength = (bField / 5.0) * (1 - distFromCenter / 200);
+          const trimInfluence = (trimAngleDeg / 25.0) * 0.08;
+          
+          // Deflect upward/downward toward peripheral beam dump stops
+          const deflectionDir = this.y < cy ? -1 : 1;
+          this.vy += deflectionDir * (fieldStrength * 0.35 + trimInfluence);
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Collision Check: Habitat Center Core (Protected Module)
+        const habRadius = 45;
+        if (distFromCenter < habRadius) {
+          this.alive = false;
+          triggerSecondaryBurst(this.x, this.y, 8, true);
+        }
+
+        // Collision Check: Structural Aluminum Struts (Hazard Collision Zone)
+        // Upper strut: x ~ [cx - 30, cx + 30], y ~ [cy - 85, cy - 65]
+        const upperStrutY = cy - 75 + (simState.strutOffset * 0.4);
+        const lowerStrutY = cy + 75 - (simState.strutOffset * 0.4);
+
+        if (Math.abs(this.x - (cx - 20)) < 30) {
+          if (Math.abs(this.y - upperStrutY) < 14 || Math.abs(this.y - lowerStrutY) < 14) {
+            this.alive = false;
+            // Structural Strut Collision -> Intense secondary gamma flash inward!
+            triggerSecondaryBurst(this.x, this.y, 14, false);
+            simState.gammaFlux += 1.8; // Internal gamma bump
+          }
+        }
+
+        // Collision Check: Beam Dump Targets (External Tungsten Stops at outer periphery)
+        const dumpTopY = cy - 130;
+        const dumpBottomY = cy + 130;
+        if (this.x > cx + 40 && this.x < cx + 110) {
+          if (Math.abs(this.y - dumpTopY) < 22 || Math.abs(this.y - dumpBottomY) < 22) {
+            this.alive = false;
+            // Safely stopped in tungsten target -> minimal outward soft scatter only
+            triggerDumpAbsorption(this.x, this.y);
+          }
+        }
+
+        // Out of bounds
+        if (this.x > width + 40 || this.y < -40 || this.y > height + 40) {
+          this.alive = false;
+        }
+      }
+
+      draw(c) {
+        // Draw Ion Path Trail
+        if (this.trail.length > 1) {
+          c.beginPath();
+          c.moveTo(this.trail[0].x, this.trail[0].y);
+          for (let i = 1; i < this.trail.length; i++) {
+            c.lineTo(this.trail[i].x, this.trail[i].y);
+          }
+          c.strokeStyle = `rgba(34, 211, 238, ${0.15 + (this.charge * 0.05)})`;
+          c.lineWidth = 2.2;
+          c.stroke();
+        }
+
+        // Ion Nucleus Head
+        c.beginPath();
+        c.arc(this.x, this.y, 2.5 + (this.charge * 0.3), 0, Math.PI * 2);
+        c.fillStyle = '#38bdf8';
+        c.shadowColor = '#06b6d4';
+        c.shadowBlur = 8;
+        c.fill();
+        c.shadowBlur = 0;
+      }
+    }
+
+    class SecondaryPhoton {
+      constructor(x, y, vx, vy, isCritical) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.isCritical = isCritical;
+        this.life = 1.0;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= 0.035;
+      }
+
+      draw(c) {
+        c.beginPath();
+        c.arc(this.x, this.y, this.isCritical ? 3.0 : 1.8, 0, Math.PI * 2);
+        c.fillStyle = this.isCritical 
+          ? `rgba(244, 63, 94, ${this.life})` 
+          : `rgba(251, 191, 36, ${this.life * 0.8})`;
+        c.shadowColor = this.isCritical ? '#f43f5e' : '#f59e0b';
+        c.shadowBlur = 6;
+        c.fill();
+        c.shadowBlur = 0;
+      }
+    }
+
+    function triggerSecondaryBurst(x, y, count, toHab) {
+      for (let i = 0; i < count; i++) {
+        const angle = toHab 
+          ? Math.atan2(canvas.height / (2 * (window.devicePixelRatio || 1)) - y, canvas.width / (2 * (window.devicePixelRatio || 1)) - x) + (Math.random() - 0.5) * 0.8
+          : Math.random() * Math.PI * 2;
+        const speed = 2.0 + Math.random() * 3.5;
+        simState.secondaryFlashes.push(
+          new SecondaryPhoton(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, true)
+        );
+      }
+    }
+
+    function triggerDumpAbsorption(x, y) {
+      for (let i = 0; i < 4; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.8 + Math.random() * 1.5;
+        simState.secondaryFlashes.push(
+          new SecondaryPhoton(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, false)
+        );
+      }
+    }
+
+    // Interactive Drag Skew
+    let isDragging = false;
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      handleUserInteraction(e);
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) handleUserInteraction(e);
+    });
+
+    function handleUserInteraction(e) {
+      const rect = canvas.getBoundingClientRect();
+      const my = e.clientY - rect.top;
+      const cy = rect.height / 2;
+      const offset = ((my - cy) / cy) * 45;
+      simState.strutOffset = Math.max(-50, Math.min(50, offset));
+      document.getElementById('strutOffsetSlider').value = simState.strutOffset;
+      document.getElementById('strutOffsetVal').textContent = `${simState.strutOffset.toFixed(1)} mm`;
+    }
+
+    // Toggle Closed-Loop Auto Trim
+    function toggleLoopMode() {
+      simState.autoTrimActive = !simState.autoTrimActive;
+      const btn = document.getElementById('loopModeBtn');
+      const badge = document.getElementById('systemStatusBadge');
+
+      if (simState.autoTrimActive) {
+        btn.textContent = "Mode: Auto Trim Active";
+        btn.className = "px-2.5 py-1 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 rounded border border-cyan-500/40 text-[11px] transition";
+        badge.textContent = "CLOSED-LOOP ACTIVE";
+        badge.className = "px-2.5 py-0.5 rounded-full font-mono text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+      } else {
+        btn.textContent = "Mode: Manual (Trim Off)";
+        btn.className = "px-2.5 py-1 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 rounded border border-rose-500/40 text-[11px] transition";
+        badge.textContent = "OPEN LOOP (TRIM OFF)";
+        badge.className = "px-2.5 py-0.5 rounded-full font-mono text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30";
+      }
+    }
+
+    // Fault Injection Button
+    function injectStrutCollision() {
+      simState.strutOffset = 38.0;
+      document.getElementById('strutOffsetSlider').value = 38.0;
+      document.getElementById('strutOffsetVal').textContent = "38.0 mm";
+      simState.gammaFlux += 18.5;
+    }
+
+    // =========================================================================
+    // Chart.js Telemetry Initializations
+    // =========================================================================
+    let phaseChart = null;
+    let gammaChart = null;
+    let trimChart = null;
+
+    function initCharts() {
+      // 1. Primary Phase Space Scatter Plot (E vs B)
+      const ctxPhase = document.getElementById('phaseSpaceChart').getContext('2d');
+      phaseChart = new Chart(ctxPhase, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Auditor Trajectory (Live State)',
+              data: [],
+              backgroundColor: '#06b6d4',
+              borderColor: '#22d3ee',
+              pointRadius: 3.5,
+              showLine: true,
+              borderWidth: 1.5,
+              tension: 0.2
+            },
+            {
+              label: 'Active Operating Head',
+              data: [{ x: 42.4, y: 4.8 }],
+              backgroundColor: '#f43f5e',
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              pointRadius: 6,
+              pointHoverRadius: 8
+            },
+            {
+              label: 'Nominal Safety Corridor',
+              data: [
+                { x: 10, y: 1.5 }, { x: 20, y: 2.8 }, { x: 30, y: 4.0 }, 
+                { x: 40, y: 5.2 }, { x: 50, y: 6.5 }
+              ],
+              borderColor: 'rgba(16, 185, 129, 0.4)',
+              borderDash: [5, 5],
+              showLine: true,
+              pointRadius: 0,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#94a3b8',
+                font: { family: '"JetBrains Mono"', size: 10 },
+                boxWidth: 10
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `B: ${ctx.parsed.y} T | Eγ: ${ctx.parsed.x} mSv/h`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Secondary Photon Energy Flux Eγ (mSv/h)',
+                color: '#64748b',
+                font: { family: '"JetBrains Mono"', size: 10 }
+              },
+              min: 0,
+              max: 120,
+              grid: { color: 'rgba(30, 41, 59, 0.6)' },
+              ticks: { color: '#94a3b8', font: { family: '"JetBrains Mono"', size: 9 } }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Primary Magnetic Flux Density B (Tesla)',
+                color: '#64748b',
+                font: { family: '"JetBrains Mono"', size: 10 }
+              },
+              min: 0,
+              max: 9.0,
+              grid: { color: 'rgba(30, 41, 59, 0.6)' },
+              ticks: { color: '#94a3b8', font: { family: '"JetBrains Mono"', size: 9 } }
+            }
+          }
+        }
+      });
+
+      // 2. Secondary Time Series: Internal Gamma Flux
+      const ctxGamma = document.getElementById('gammaTimeSeriesChart').getContext('2d');
+      gammaChart = new Chart(ctxGamma, {
+        type: 'line',
+        data: {
+          labels: Array.from({ length: 25 }, (_, i) => `${i}s`),
+          datasets: [{
+            label: 'Hab Gamma (mSv/h)',
+            data: Array(25).fill(42),
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+            fill: true,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: {
+              min: 10,
+              max: 110,
+              grid: { color: 'rgba(30, 41, 59, 0.4)' },
+              ticks: { color: '#64748b', font: { family: '"JetBrains Mono"', size: 9 } }
+            }
+          }
+        }
+      });
+
+      // 3. Secondary Time Series: Trim Coil Current
+      const ctxTrim = document.getElementById('trimTimeSeriesChart').getContext('2d');
+      trimChart = new Chart(ctxTrim, {
+        type: 'line',
+        data: {
+          labels: Array.from({ length: 25 }, (_, i) => `${i}s`),
+          datasets: [{
+            label: 'Trim Vector (°)',
+            data: Array(25).fill(14),
+            borderColor: '#a78bfa',
+            backgroundColor: 'rgba(167, 139, 250, 0.1)',
+            fill: true,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: {
+              min: -25,
+              max: 25,
+              grid: { color: 'rgba(30, 41, 59, 0.4)' },
+              ticks: { color: '#64748b', font: { family: '"JetBrains Mono"', size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    function resetTelemetryData() {
+      simState.phaseHistory = [];
+      simState.gammaFlux = 40.0;
+      simState.strutOffset = 0;
+      document.getElementById('strutOffsetSlider').value = 0;
+      document.getElementById('strutOffsetVal').textContent = "0.0 mm";
+    }
+
+    // =========================================================================
+    // Real-Time Animation Loop & Closed Loop State Observer
+    // =========================================================================
+    let tickCount = 0;
+
+    function renderSimulation() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 640;
+      const h = rect.height || 400;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+
+      // 1. Draw Active Magnetic Deflection Flux Bubbles (Field lines)
+      const bScale = simState.bField / 5.0;
+      ctx.save();
+      for (let r = 80; r <= 180; r += 32) {
+        ctx.beginPath();
+        ctx.ellipse(cx - 20, cy, r * 1.1, r * (0.85 + (bScale * 0.1)), 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(6, 182, 212, ${0.04 + (bScale * 0.025)})`;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 6]);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 2. Draw Tungsten / HDPE Peripheral Beam Stops (Upper & Lower)
+      const dumpTopY = cy - 130;
+      const dumpBottomY = cy + 130;
+      const dumpX = cx + 45;
+
+      // Upper Dump
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(dumpX, dumpTopY - 12, 65, 24);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(dumpX, dumpTopY - 12, 65, 24);
+
+      // Lower Dump
+      ctx.fillRect(dumpX, dumpBottomY - 12, 65, 24);
+      ctx.strokeRect(dumpX, dumpBottomY - 12, 65, 24);
+
+      // Beam Stop Labels
+      ctx.font = '9px "JetBrains Mono"';
+      ctx.fillStyle = '#03050a';
+      ctx.fillText('W-HDPE DUMP', dumpX + 5, dumpTopY + 3);
+      ctx.fillText('W-HDPE DUMP', dumpX + 5, dumpBottomY + 3);
+
+      // 3. Draw Spaceframe Structural Aluminum Struts (Trunnions)
+      const upperStrutY = cy - 75 + (simState.strutOffset * 0.4);
+      const lowerStrutY = cy + 75 - (simState.strutOffset * 0.4);
+
+      ctx.fillStyle = '#64748b';
+      // Upper Trunnion
+      ctx.fillRect(cx - 35, upperStrutY - 6, 40, 12);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.strokeRect(cx - 35, upperStrutY - 6, 40, 12);
+
+      // Lower Trunnion
+      ctx.fillRect(cx - 35, lowerStrutY - 6, 40, 12);
+      ctx.strokeRect(cx - 35, lowerStrutY - 6, 40, 12);
+
+      // Strut Collision Warning Marker if offset is large
+      if (Math.abs(simState.strutOffset) > 18) {
+        ctx.fillStyle = '#ef4444';
+        ctx.font = '8px "JetBrains Mono"';
+        ctx.fillText('! STRUT INTERCEPT !', cx - 45, upperStrutY - 10);
+      }
+
+      // 4. Draw Pressurized Crew Habitat (Inner Core)
+      ctx.beginPath();
+      ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+      ctx.fillStyle = '#064e3b';
+      ctx.fill();
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Habitat Internal Core Detail
+      ctx.beginPath();
+      ctx.arc(cx, cy, 32, 0, Math.PI * 2);
+      ctx.fillStyle = '#022c22';
+      ctx.fill();
+
+      ctx.fillStyle = '#a7f3d0';
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText('CREW HAB', cx, cy - 4);
+      ctx.font = '8px "JetBrains Mono"';
+      ctx.fillStyle = '#34d399';
+      ctx.fillText('ALARA SAFE', cx, cy + 9);
+      ctx.textAlign = 'left';
+
+      // 5. Spawn Galactic Cosmic Ray Ions at Left Boundary
+      if (Math.random() < 0.45) {
+        const spawnY = cy + (Math.random() - 0.5) * 160;
+        const speed = 4.5 + Math.random() * 2.8;
+        const charge = Math.random() > 0.8 ? 26 : (Math.random() > 0.6 ? 6 : 1);
+        const zSym = charge === 26 ? 'Fe' : (charge === 6 ? 'C' : 'p');
+        simState.particles.push(new CosmicRay(-10, spawnY, speed, (Math.random() - 0.5) * 0.4, charge, zSym));
+      }
+
+      // 6. Update and Draw Cosmic Rays
+      for (let i = simState.particles.length - 1; i >= 0; i--) {
+        const p = simState.particles[i];
+        p.update(w, h, simState.bField, simState.trimAngle);
+        p.draw(ctx);
+        if (!p.alive) {
+          simState.particles.splice(i, 1);
+        }
+      }
+
+      // 7. Update and Draw Secondary Photon Bremsstrahlung Flash
+      for (let i = simState.secondaryFlashes.length - 1; i >= 0; i--) {
+        const f = simState.secondaryFlashes[i];
+        f.update();
+        f.draw(ctx);
+        if (f.life <= 0) {
+          simState.secondaryFlashes.splice(i, 1);
+        }
+      }
+
+      // =======================================================================
+      // Dynamic Closed-Loop State Observer Calculation
+      // =======================================================================
+      // Natural thermal gamma decay back to baseline 38.0
+      simState.gammaFlux += (38.0 - simState.gammaFlux) * 0.035;
+
+      // Strut collision factor generates secondary gamma leak
+      const strutHazardIntensity = Math.max(0, (Math.abs(simState.strutOffset) - 10) * 0.55);
+      simState.gammaFlux += strutHazardIntensity;
+
+      // Closed-Loop Auto Trim Adjustment (PID action)
+      if (simState.autoTrimActive) {
+        // If gamma exceeds baseline, steer trim to counteract strut offset
+        const targetTrim = -simState.strutOffset * 0.52;
+        simState.trimAngle += (targetTrim - simState.trimAngle) * 0.12;
+
+        // Auto-nudge strut misalignment back toward center over time
+        if (Math.abs(simState.strutOffset) > 0.1) {
+          simState.strutOffset *= 0.96;
+          document.getElementById('strutOffsetSlider').value = simState.strutOffset.toFixed(1);
+          document.getElementById('strutOffsetVal').textContent = `${simState.strutOffset.toFixed(1)} mm`;
+        }
+      }
+
+      // Flash Warning Overlay Activation
+      const warningOverlay = document.getElementById('flashWarningOverlay');
+      if (simState.gammaFlux > 55.0) {
+        warningOverlay.classList.remove('hidden');
+      } else {
+        warningOverlay.classList.add('hidden');
+      }
+
+      // Update Telemetry Displays
+      document.getElementById('statBField').textContent = `${simState.bField.toFixed(2)} T`;
+      document.getElementById('statGammaFlux').textContent = `${simState.gammaFlux.toFixed(1)} mSv/h`;
+      document.getElementById('statTrimAngle').textContent = `${simState.trimAngle >= 0 ? '+' : ''}${simState.trimAngle.toFixed(1)}°`;
+
+      const habSafetyPct = Math.max(0, Math.min(99.9, 100 - (simState.gammaFlux - 35) * 1.2));
+      document.getElementById('statHabSafe').textContent = `${habSafetyPct.toFixed(1)}%`;
+
+      const kappa = (simState.gammaFlux / (simState.bField * 100)).toFixed(3);
+      document.getElementById('kappaMetric').textContent = `${kappa} (${simState.gammaFlux < 50 ? 'Optimal Safe' : 'Warning: Strut Scatter'})`;
+
+      // Throttled Chart Updates (Every 4 frames)
+      tickCount++;
+      if (tickCount % 4 === 0) {
+        updateTelemetryCharts();
+      }
+
+      animationFrameId = requestAnimationFrame(renderSimulation);
+    }
+
+    function updateTelemetryCharts() {
+      // 1. Update Phase Space Trajectory Points
+      simState.phaseHistory.push({ x: Number(simState.gammaFlux.toFixed(1)), y: Number(simState.bField.toFixed(2)) });
+      if (simState.phaseHistory.length > 28) simState.phaseHistory.shift();
+
+      if (phaseChart) {
+        phaseChart.data.datasets[0].data = simState.phaseHistory;
+        phaseChart.data.datasets[1].data = [{ x: Number(simState.gammaFlux.toFixed(1)), y: Number(simState.bField.toFixed(2)) }];
+        phaseChart.update('none');
+      }
+
+      // 2. Update Gamma Time Series
+      if (gammaChart) {
+        const gammaData = gammaChart.data.datasets[0].data;
+        gammaData.push(Number(simState.gammaFlux.toFixed(1)));
+        if (gammaData.length > 25) gammaData.shift();
+        gammaChart.update('none');
+      }
+
+      // 3. Update Trim Time Series
+      if (trimChart) {
+        const trimData = trimChart.data.datasets[0].data;
+        trimData.push(Number(simState.trimAngle.toFixed(1)));
+        if (trimData.length > 25) trimData.shift();
+        trimChart.update('none');
+      }
+    }
+
+    // Interactive Slider Event Listeners
+    document.getElementById('bFieldSlider').addEventListener('input', (e) => {
+      simState.bField = parseFloat(e.target.value);
+      document.getElementById('bFieldVal').textContent = `${simState.bField.toFixed(1)} T`;
+    });
+
+    document.getElementById('rigiditySlider').addEventListener('input', (e) => {
+      simState.rigidity = parseFloat(e.target.value);
+      document.getElementById('rigidityVal').textContent = `${simState.rigidity.toFixed(1)} GV`;
+    });
+
+    document.getElementById('strutOffsetSlider').addEventListener('input', (e) => {
+      simState.strutOffset = parseFloat(e.target.value);
+      document.getElementById('strutOffsetVal').textContent = `${simState.strutOffset.toFixed(1)} mm`;
+    });
+
+    // Window Onload Initialization
+    window.onload = function () {
+      lucide.createIcons();
+      initCharts();
+      resizeCanvas();
+      renderSimulation();
+    };
+  </script>
+</body>
+</html>
